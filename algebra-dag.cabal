@@ -5,10 +5,9 @@ Category:       Database
 Version:        0.1
 Description:    This library contains infrastructure for DAG-shaped plans of relational operators.
                 It offers an API for construction and modification of algebra plans and a DSL
-                for specifying rewrites on plans.
-                .
-                .
-                 1. <http://db.inf.uni-tuebingen.de/projects/DatabaseSupportedHaskell.html>
+                for specifying rewrites on plans. Examples of usage can be found in the packages
+                <http://hackage.haskell.org/package/DSH DSH> and 
+                <http://hackage.haskell.org/package/algebra-sql algebra-sql>
 License:        BSD3
 License-file:   LICENSE
 Author:		Alexander Ulrich
