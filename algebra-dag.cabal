@@ -20,17 +20,9 @@ library
                       mtl                >= 2.1, 
                       containers         >= 0.5, 
                       template-haskell   >= 2.9, 
-                      pretty             >= 1.1, 
                       fgl                >= 5.5, 
                       transformers       >= 0.3, 
                       parsec             >= 3.1,
-                      ghc-prim           >= 0.3,
-                      bytestring         >= 0.10,
-                      errors             >= 1.0,
-                      dlist              >= 0.7,
-                      ansi-wl-pprint     >= 0.6,
-                      multiset           >= 0.2,
-                      semigroups         >= 0.16,
                       aeson              >= 0.8
 
     exposed-modules:  Database.Algebra.Dag
@@ -47,6 +39,5 @@ library
 
     hs-source-dirs:   src
     GHC-Options:       -Wall -fno-warn-orphans
-    other-modules:    Database.Algebra.Impossible
-                      Database.Algebra.Rewrite.PatternSyntax		      
+    other-modules:    Database.Algebra.Rewrite.PatternSyntax		      
 
