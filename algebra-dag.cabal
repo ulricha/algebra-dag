@@ -2,7 +2,7 @@ cabal-version: >=1.8
 Name:           algebra-dag
 synopsis:       Infrastructure for DAG-shaped relational algebra plans
 Category:       Database
-Version:        0.1
+Version:        0.1.0.0
 Description:    This library contains infrastructure for DAG-shaped plans of relational operators.
                 It offers an API for construction and modification of algebra plans and a DSL
                 for specifying rewrites on plans. Examples of usage can be found in the packages
