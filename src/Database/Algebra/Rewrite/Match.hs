@@ -1,18 +1,20 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
+-- | Pattern matches on algebra plans.
 module Database.Algebra.Rewrite.Match
-       ( Match(..)
-       , runMatch
-       , getParents
-       , getOperator
-       , hasPath
-       , getRootNodes
-       , predicate
-       , try
-       , matchOp
-       , lookupExtras
-       , exposeEnv
-       , properties) where
+    ( Match(..)
+    , runMatch
+    , getParents
+    , getOperator
+    , hasPath
+    , getRootNodes
+    , predicate
+    , try
+    , matchOp
+    , lookupExtras
+    , exposeEnv
+    , properties
+    ) where
 
 import qualified Data.IntMap                 as M
 
@@ -27,12 +29,12 @@ data Env o p e = Env { dag :: Dag.AlgebraDag o
                      , propMap :: NodeMap p
                      , extras :: e }
 
--- | The Match monad models the failing of a match and provides limited read-only access
--- to the DAG.
+-- | The Match monad models the failing of a match and provides
+-- limited read-only access to the DAG.
 newtype Match o p e a = M (MaybeT (Reader (Env o p e)) a) deriving (Monad, Functor, Applicative)
 
--- | Runs a match on the supplied DAG. If the Match fails, 'Nothing' is returned.
--- If the Match succeeds, it returns just the result.
+-- | Runs a match on the supplied DAG. If the Match fails, 'Nothing'
+-- is returned.  If the Match succeeds, it returns just the result.
 runMatch :: e -> Dag.AlgebraDag o -> NodeMap p -> Match o p e a -> Maybe a
 runMatch e d pm (M match) = runReader (runMaybeT match) env
   where env = Env { dag = d, propMap = pm, extras = e }
@@ -61,7 +63,8 @@ try :: Maybe a -> Match o p e a
 try (Just x) = return x
 try Nothing  = fail ""
 
--- | Runs the supplied Match action on the operator that belongs to the given node.
+-- | Runs the supplied Match action on the operator that belongs to
+-- the given node.
 matchOp :: Dag.Operator o => AlgNode -> (o -> Match o p e a) -> Match o p e a
 matchOp q match = M $ asks ((Dag.operator q) . dag) >>= (\o -> unwrap $ match o)
   where unwrap (M r) = r

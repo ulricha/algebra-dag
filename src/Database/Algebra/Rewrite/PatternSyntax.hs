@@ -1,12 +1,15 @@
+{-# OPTIONS_GHC -fno-warn-unused-do-bind #-}
+
 module Database.Algebra.Rewrite.PatternSyntax 
-       ( Pattern
-       , Op(..)
-       , Node(..)
-       , Child(..)
-       , Sem(..)
-       , Ident
-       , UIdent
-       , parsePattern) where
+    ( Pattern
+    , Op(..)
+    , Node(..)
+    , Child(..)
+    , Sem(..)
+    , Ident
+    , UIdent
+    , parsePattern
+    ) where
 
 import Text.ParserCombinators.Parsec
 

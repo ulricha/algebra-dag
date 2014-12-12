@@ -1,0 +1,53 @@
+cabal-version: >=1.8
+Name:           algebra-dag
+synopsis:       Infrastructure for DAG-shaped relational algebra plans
+Category:       Database
+Version:        0.1
+Description:    This library contains infrastructure for DAG-shaped plans of relational operators.
+                It offers an API for construction and modification of algebra plans and a DSL
+                for specifying rewrites on plans.
+                .
+                .
+                 1. <http://db.inf.uni-tuebingen.de/projects/DatabaseSupportedHaskell.html>
+License:        BSD3
+License-file:   LICENSE
+Author:		Alexander Ulrich
+Maintainer:	alex@etc-network.de
+Build-Type:     Simple
+
+library
+    buildable:        True
+    build-depends:    base               >= 4.7 && < 5,  
+                      mtl                >= 2.1, 
+                      containers         >= 0.5, 
+                      template-haskell   >= 2.9, 
+                      pretty             >= 1.1, 
+                      fgl                >= 5.5, 
+                      transformers       >= 0.3, 
+                      parsec             >= 3.1,
+                      ghc-prim           >= 0.3,
+                      bytestring         >= 0.10,
+                      errors             >= 1.0,
+                      dlist              >= 0.7,
+                      ansi-wl-pprint     >= 0.6,
+                      multiset           >= 0.2,
+                      semigroups         >= 0.16,
+                      aeson              >= 0.8
+
+    exposed-modules:  Database.Algebra.Dag
+                      Database.Algebra.Dag.Build
+                      Database.Algebra.Dag.Common
+
+                      Database.Algebra.Rewrite
+                      Database.Algebra.Rewrite.Match
+                      Database.Algebra.Rewrite.Traversal
+                      Database.Algebra.Rewrite.Rule
+                      Database.Algebra.Rewrite.Properties
+                      Database.Algebra.Rewrite.PatternConstruction
+                      Database.Algebra.Rewrite.DagRewrite
+
+    hs-source-dirs:   src
+    GHC-Options:       -Wall -fno-warn-orphans
+    other-modules:    Database.Algebra.Impossible
+                      Database.Algebra.Rewrite.PatternSyntax		      
+
