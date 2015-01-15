@@ -41,3 +41,6 @@ library
     GHC-Options:       -Wall -fno-warn-orphans
     other-modules:    Database.Algebra.Rewrite.PatternSyntax		      
 
+source-repository head
+    type:     git
+    location: https://github.com/ulricha/algebra-dag
