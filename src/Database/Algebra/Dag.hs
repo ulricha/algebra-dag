@@ -23,8 +23,9 @@ module Database.Algebra.Dag
        , replaceRoot
        , collect
        ) where
-       
+
 import           Control.Exception.Base
+import           Data.Aeson
 import qualified Data.Graph.Inductive.Graph        as G
 import           Data.Graph.Inductive.PatriciaTree
 import qualified Data.Graph.Inductive.Query.DFS    as DFS
@@ -44,6 +45,14 @@ data AlgebraDag a = AlgebraDag
   , refCountMap :: NodeMap Int     -- ^ A map storing the number of parents for each node.
   }
 
+instance ToJSON a => ToJSON (AlgebraDag a) where
+    toJSON dag = toJSON (nodeMap dag, rootNodes dag)
+
+instance (FromJSON a, Operator a) => FromJSON (AlgebraDag a) where
+    parseJSON v = do
+        (nm, rs) <- parseJSON v
+        return $ mkDag nm rs
+
 class (Ord a, Show a) => Operator a where
     opChildren     :: a -> [AlgNode]
     replaceOpChild :: a -> AlgNode -> AlgNode -> a
@@ -54,7 +63,7 @@ class (Ord a, Show a) => Operator a where
 -- nodes are not pruned if they don't have any incoming edges.
 initRefCount :: Operator o => [AlgNode] -> NodeMap o -> NodeMap Int
 initRefCount rs nm = L.foldl' incParents (IM.foldr' insertEdge IM.empty nm) (L.nub rs)
-  where 
+  where
     insertEdge op rm = L.foldl' incParents rm (L.nub $ opChildren op)
     incParents rm n  = IM.insert n ((IM.findWithDefault 0 n rm) + 1) rm
 
@@ -72,18 +81,18 @@ mkDag m rs = AlgebraDag { nodeMap = mNormalized
                         , opMap = initOpMap mNormalized
                         , nextNodeID = 1 + (fst $ IM.findMax mNormalized)
                         }
-  where 
+  where
     mNormalized = normalizeMap rs m
     g =  uncurry G.mkUGraph $ IM.foldrWithKey aux ([], []) mNormalized
     aux n op (allNodes, allEdges) = (n : allNodes, es ++ allEdges)
-      where 
+      where
         es = map (\v -> (n, v)) $ opChildren op
 
 -- | Construct an empty DAG with no root nodes. Beware: before any
 -- collections are performed, root nodes must be added. Otherwise, all
 -- nodes will be considered unreachable.
 emptyDag :: AlgebraDag a
-emptyDag = 
+emptyDag =
     AlgebraDag { nodeMap     = IM.empty
                , opMap       = M.empty
                , nextNodeID  = 1
@@ -109,7 +118,7 @@ addRootNodes d rs = assert (all (\n -> IM.member n $ nodeMap d) rs) $
     mNormalized     = normalizeMap rs (nodeMap d)
 
     aux n op (allNodes, allEdges) = (n : allNodes, es ++ allEdges)
-      where 
+      where
         es = map (\v -> (n, v)) $ opChildren op
 
 reachable :: Operator a => NodeMap a -> [AlgNode] -> S.Set AlgNode
@@ -262,7 +271,7 @@ replaceChild parent old new d =
              if new `elem` G.suc (graph d) parent
              then d''
              else addRefTo d'' new
-          
+
      else d
 
 -- | Returns the operator for a node.
