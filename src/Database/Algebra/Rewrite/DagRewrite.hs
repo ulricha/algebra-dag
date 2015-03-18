@@ -30,7 +30,6 @@ module Database.Algebra.Rewrite.DagRewrite
        , collect
        ) where
 
-import           Control.Applicative
 import           Control.Monad.State
 import           Control.Monad.Writer
 import qualified Data.IntMap                 as IM

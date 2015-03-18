@@ -122,11 +122,11 @@ addRootNodes d rs = assert (all (\n -> IM.member n $ nodeMap d) rs) $
         es = map (\v -> (n, v)) $ opChildren op
 
 reachable :: Operator a => NodeMap a -> [AlgNode] -> S.Set AlgNode
-reachable m rs = L.foldl' traverse S.empty rs
-  where traverse :: S.Set AlgNode -> AlgNode -> S.Set AlgNode
-        traverse s n = if S.member n s
-                       then s
-                       else L.foldl' traverse (S.insert n s) (opChildren $ lookupOp n)
+reachable m rs = L.foldl' traverseDag S.empty rs
+  where traverseDag :: S.Set AlgNode -> AlgNode -> S.Set AlgNode
+        traverseDag s n = if S.member n s
+                          then s
+                          else L.foldl' traverseDag (S.insert n s) (opChildren $ lookupOp n)
 
         lookupOp n = case IM.lookup n m of
                        Just op -> op

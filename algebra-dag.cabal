@@ -16,7 +16,7 @@ Build-Type:     Simple
 
 library
     buildable:        True
-    build-depends:    base               >= 4.7 && < 5,  
+    build-depends:    base               >= 4.8 && < 5,  
                       mtl                >= 2.1, 
                       containers         >= 0.5, 
                       template-haskell   >= 2.9, 

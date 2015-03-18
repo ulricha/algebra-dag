@@ -18,7 +18,6 @@ module Database.Algebra.Rewrite.Match
 
 import qualified Data.IntMap                 as M
 
-import           Control.Applicative
 import           Control.Monad.Reader
 import           Control.Monad.Trans.Maybe
 

@@ -2,10 +2,9 @@
 
 module Database.Algebra.Rewrite.PatternConstruction
     ( dagPatMatch
-    , v 
+    , v
     ) where
 
-import           Control.Applicative
 import           Control.Monad.Writer
 import           Data.Maybe
 import           Language.Haskell.TH

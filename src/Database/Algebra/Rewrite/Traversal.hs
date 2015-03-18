@@ -7,7 +7,6 @@ module Database.Algebra.Rewrite.Traversal
        , sequenceRewrites
        ) where
 
-import           Control.Applicative
 import           Control.Monad
 
 import qualified Data.IntMap                         as M
@@ -55,7 +54,7 @@ preOrder :: Dag.Operator o
             -> RuleSet o p e
             -> Rewrite o e Bool
 preOrder inferAction rules =
-  let traverse (changedPrev, mProps, visited) q =
+  let traversePre (changedPrev, mProps, visited) q =
         if q `S.member` visited
         then return (changedPrev, mProps, visited)
         else do
@@ -87,12 +86,12 @@ preOrder inferAction rules =
           props <- case mProps of
             Just ps -> return ps
             Nothing -> inferAction
-          traverse (changedPrev, Just props, visited) c
+          traversePre (changedPrev, Just props, visited) c
 
   in do
     pm <- inferAction
     rs <- rootNodes
-    (changed, _, _) <- foldM traverse (False, Just pm, S.empty) rs
+    (changed, _, _) <- foldM traversePre (False, Just pm, S.empty) rs
     return changed
 
 {- | Map a ruleset over the nodes of a DAG in topological order. This function assumes that
@@ -119,7 +118,7 @@ postOrder :: Dag.Operator o
              -> RuleSet o p e
              -> Rewrite o e Bool
 postOrder inferAction rules =
-  let traverse (changedPrev, props, visited) q =
+  let traversePost (changedPrev, props, visited) q =
         if q `S.member` visited
         then return (changedPrev, props, visited)
         else do
@@ -149,12 +148,12 @@ postOrder inferAction rules =
           props <- case mProps of
             Just ps -> return ps
             Nothing -> inferAction
-          traverse (changedPrev, Just props, visited) c
+          traversePost (changedPrev, Just props, visited) c
 
   in do
     pm <- inferAction
     rs <- rootNodes
-    (changed, _, _) <- foldM traverse (False, Just pm, S.empty) rs
+    (changed, _, _) <- foldM traversePost (False, Just pm, S.empty) rs
     return changed
 
 -- | Iteratively apply a rewrite, until no further changes occur.
