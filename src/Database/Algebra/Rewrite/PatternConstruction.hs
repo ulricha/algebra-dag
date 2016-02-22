@@ -57,28 +57,27 @@ instMatchCase :: Name           -- ^ The name of the node constructor (BinOp, Un
                  -> Bool        -- ^ Bind the operator name (or don't)
                  -> Q Exp       -- ^ Returns the case expression
 instMatchCase nodeConstructor opConstructors semantics childMatchPatterns childNames bindOp =
-  caseE (varE opName) ((map opAlternative opConstructors) ++ [catchAllCase])
+  caseE (varE opName) (map opAlternative opConstructors ++ [catchAllCase])
   where opAlternative opConstructor = match opPattern opBody []
           where (semPat, semName) = case semantics of
                   Bind (p, n) -> ([p], [n])
                   NoBind      -> ([wildP], [])
                   NoSemantics -> ([], [])
-                opPattern = conP nodeConstructor ((conP opConstructor semPat) : childMatchPatterns)
-                opConstExp = if bindOp then [conE opConstructor] else []
-                opBody = normalB $ appE (varE (mkName "return")) (tupE $ opConstExp ++ (map varE (semName ++ childNames)))
+                opPattern = conP nodeConstructor (conP opConstructor semPat : childMatchPatterns)
+                opConstExp = [ conE opConstructor | bindOp ]
+                opBody = normalB $ appE (varE (mkName "return")) (tupE $ opConstExp ++ map varE (semName ++ childNames))
 
 -- \op -> case op of...
 instMatchLambda :: Q Exp -> Q Exp
-instMatchLambda body = lam1E (varP opName) body
+instMatchLambda = lam1E (varP opName)
 
 instMatchExp :: Name -> Q Exp -> Q Exp
-instMatchExp nodeName matchLambda =
-  appE (appE (varE matchOp) (varE nodeName)) matchLambda
+instMatchExp nodeName = appE (appE (varE matchOp) (varE nodeName))
 
 -- (a, b, c) <- ...
 instBindingPattern :: Maybe (Q Pat) -> SemPattern -> [Q Pat] -> Q Pat
 instBindingPattern mOpConstPat semPat childPats = tupP patterns
-  where patterns = (maybeList mOpConstPat) ++ (semList semPat) ++ childPats
+  where patterns = maybeList mOpConstPat ++ semList semPat ++ childPats
         maybeList (Just x) = [x]
         maybeList Nothing  = []
 
@@ -132,7 +131,7 @@ gen nodeName (UnP op semBinding child) = do
 
   patAndName <- lift (childMatchPattern child)
 
-  let (matchPatterns, bindNames, bindPatterns) = splitMatchAndBind $ [patAndName]
+  let (matchPatterns, bindNames, bindPatterns) = splitMatchAndBind [patAndName]
       statement = instStmtWrapper nodeName unOpName opNames mOpConstPat semantics matchPatterns bindPatterns bindNames
 
   emit statement
@@ -163,7 +162,7 @@ gen nodeName (TerP op semBinding child1 child2 child3) = do
   patAndName3 <- lift (childMatchPattern child3)
 
   let childPatAndNames = [patAndName1, patAndName2, patAndName3]
-      (matchPatterns, bindNames, bindPatterns) = splitMatchAndBind $ childPatAndNames
+      (matchPatterns, bindNames, bindPatterns) = splitMatchAndBind childPatAndNames
       statement = instStmtWrapper nodeName terOpName opNames mOpConstPat semantics matchPatterns bindPatterns bindNames
 
   emit statement
@@ -188,7 +187,7 @@ gen nodeName (HoleP holeStart subHolePat) = do
 
   emit $ bindS bindingPat searchExpr
 
-gen nodeName (HoleEq eqNode) = do
+gen nodeName (HoleEq eqNode) =
   emit $ noBindS $ appE (appE (varE 'searchHoleEq) (varE nodeName)) (varE $ mkName eqNode)
 
 -- Traverse a DAG (DFS, preorder) and search for a node where the given pattern applies.
@@ -220,22 +219,17 @@ searchChildren patMatch (q:qs) = do
 -- Search for an occurence of the node 'eqNode', starting at 'startNode'
 searchHoleEq :: Operator o => AlgNode -> AlgNode -> M.Match o p e ()
 searchHoleEq startNode eqNode =
-  if startNode == eqNode
-  then return ()
-  else do
+  unless (startNode == eqNode) $ do
     (d, _, _) <- M.exposeEnv
     children <- opChildren <$> M.getOperator startNode
-    if nodeOccurs d eqNode children
-      then return ()
-      else fail "no occurence"
+    unless (nodeOccurs d eqNode children) (fail "no occurence")
 
 -- Since we only search for occurences of a particular node and no pattern matching
 -- occurs, we do not burden ourselves with the Match monad here.
 nodeOccurs :: Operator o => AlgebraDag o -> AlgNode -> [AlgNode] -> Bool
 nodeOccurs dag eqNode startNodes =
-  if eqNode `elem` startNodes
-  then True
-  else or $ map (nodeOccurs dag eqNode . opChildren . (flip operator dag)) startNodes
+  eqNode `elem` startNodes ||
+  any (nodeOccurs dag eqNode . opChildren . flip operator dag) startNodes
 
 -- | Generate a function which matches a pattern on a certain node.
 -- The generated function returns values for all binders in the pattern
@@ -253,8 +247,8 @@ genSubHoleMatch binderNames pat = do
 
   -- the function binding
   funName <- newName "subhole"
-  let fun  = funD funName [(clause [varP rootName] (normalB body) [])]
-      stmt = letS $ [fun]
+  let fun  = funD funName [clause [varP rootName] (normalB body) []]
+      stmt = letS [fun]
   return (funName, stmt)
 
 {-
@@ -382,7 +376,7 @@ dagPatMatch rootName patternString userExpr = do
 
   -- combine the generated pattern-matching statements with the
   -- user-supplied additional predicates
-  assembleStatements (mapM id patternStatements) userExpr
+  assembleStatements (sequence patternStatements) userExpr
 
 -- | Reference a variable that is bound by a pattern in a quoted match body.
 v :: String -> Q Exp
