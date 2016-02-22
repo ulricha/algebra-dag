@@ -346,7 +346,9 @@ assembleStatements patternStatements userExpr = do
   let us =
         case e of
           DoE userStatements -> userStatements
-          _ -> error "PatternConstruction.assembleStatements: no do-block supplied"
+          AppE{}             -> [NoBindS e]
+          InfixE{}           -> [NoBindS e]
+          _ -> error $ "PatternConstruction.assembleStatements: no do-block supplied " ++ show e
 
       -- The call to collect
       collectStmt = NoBindS $ VarE 'R.collect
