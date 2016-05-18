@@ -23,7 +23,7 @@ library
                       fgl                >= 5.5, 
                       transformers       >= 0.3, 
                       parsec             >= 3.1,
-                      aeson              >= 0.8
+                      aeson              >= 0.11
 
     exposed-modules:  Database.Algebra.Dag
                       Database.Algebra.Dag.Build
