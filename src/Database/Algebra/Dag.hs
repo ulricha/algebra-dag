@@ -53,10 +53,6 @@ instance (FromJSON a, Operator a) => FromJSON (AlgebraDag a) where
         (nm, rs) <- parseJSON v
         return $ mkDag nm rs
 
-class (Ord a, Show a) => Operator a where
-    opChildren     :: a -> [AlgNode]
-    replaceOpChild :: a -> AlgNode -> AlgNode -> a
-
 -- For every node, count the number of parents (or list of edges to the node).
 -- We don't consider the graph a multi-graph, so an edge (u, v) is only counted
 -- once.  We insert one virtual edge for every root node, to make sure that root
