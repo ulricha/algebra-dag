@@ -58,7 +58,7 @@ data RewriteState o e = RewriteState
 newtype Rewrite o e a = R (WriterT Log (State (RewriteState o e)) a) deriving (Monad, Functor, Applicative)
 
 -- FIXME Map.findMax might call error
-initRewriteState :: (Ord o, Dag.Operator o) => Dag.AlgebraDag o -> e -> Bool -> RewriteState o e
+initRewriteState :: Dag.AlgebraDag o -> e -> Bool -> RewriteState o e
 initRewriteState d e debug =
     RewriteState { dag = d
                  , cache = emptyCache
@@ -69,7 +69,7 @@ initRewriteState d e debug =
 
 -- | Run a rewrite action on the supplied graph. Returns the rewritten node map, the potentially
 -- modified list of root nodes, the result of the rewrite and the rewrite log.
-runRewrite :: Dag.Operator o => Rewrite o e r -> Dag.AlgebraDag o -> e -> Bool -> (Dag.AlgebraDag o, e, r, Log)
+runRewrite :: Rewrite o e r -> Dag.AlgebraDag o -> e -> Bool -> (Dag.AlgebraDag o, e, r, Log)
 runRewrite (R m) d e debug = (dag s, extras s, res, rewriteLog)
   where ((res, rewriteLog), s) = runState (runWriterT m) (initRewriteState d e debug)
 
@@ -124,7 +124,7 @@ parents :: AlgNode -> Rewrite o e [AlgNode]
 parents n = R $ gets ((Dag.parents n) . dag)
 
 -- | Return a topological ordering of all reachable nodes in the DAG.
-topsort :: Dag.Operator o => Rewrite o e [AlgNode]
+topsort :: Rewrite o e [AlgNode]
 topsort =
   R $ do
     s <- get
@@ -181,7 +181,7 @@ updateExtras e =
 
 -- | Insert an operator into the DAG and return its node id. If the operator is already
 -- present (same op, same children), reuse it.
-insert :: (Dag.Operator o, Show o) => o -> Rewrite o e AlgNode
+insert :: Dag.Operator o => o -> Rewrite o e AlgNode
 insert op =
   R $ do
     d <- gets dag
@@ -221,7 +221,7 @@ replace old new = do
 
 -- | Creates a new node from the operator and replaces the old node with it
 -- by rewiring all links to the old node.
-replaceWithNew :: (Dag.Operator o, Show o) => AlgNode -> o -> Rewrite o e AlgNode
+replaceWithNew :: Dag.Operator o => AlgNode -> o -> Rewrite o e AlgNode
 replaceWithNew oldNode newOp = do
   newNode <- insert newOp
   replace oldNode newNode
@@ -237,7 +237,7 @@ addCollectNode n =
     s <- get
     put $ s { collectNodes = S.insert n $ collectNodes s }
 
-collect :: (Show o, Dag.Operator o) => Rewrite o e ()
+collect :: Dag.Operator o => Rewrite o e ()
 collect =
   R $ do
     s <- get

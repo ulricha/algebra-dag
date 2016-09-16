@@ -167,7 +167,7 @@ refCountSafe n d = IM.lookup n $ refCountMap d
 
 collect :: Operator o => S.Set AlgNode -> AlgebraDag o -> AlgebraDag o
 collect collectNodes d = S.foldl' tryCollectNode d collectNodes
-  where tryCollectNode :: (Show o, Operator o) => AlgebraDag o -> AlgNode -> AlgebraDag o
+  where tryCollectNode :: Operator o => AlgebraDag o -> AlgNode -> AlgebraDag o
         tryCollectNode di n =
           case refCountSafe n di of
             Just rc -> if rc == 0
@@ -278,7 +278,7 @@ operator n d =
         Nothing -> error $ "AlgebraDag.operator: lookup failed for " ++ (show n) ++ "\n" ++ (show $ map fst $ IM.toList $ nodeMap d)
 
 -- | Return a topological ordering of all nodes which are reachable from the root nodes.
-topsort :: Operator a => AlgebraDag a -> [AlgNode]
+topsort :: AlgebraDag a -> [AlgNode]
 topsort d = DFS.topsort $ graph d
 
 -- | Return all nodes that are reachable from one node.
