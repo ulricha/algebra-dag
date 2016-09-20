@@ -1,3 +1,5 @@
+{-# LANGUAGE BangPatterns #-}
+
 module Database.Algebra.Rewrite.Properties(inferBottomUpGeneral) where
 
 import           Control.Monad.Reader
@@ -14,17 +16,8 @@ hasBeenVisited n = do
   pm <- get
   return $ M.member n pm
 
-putProperty :: AlgNode -> p -> Inference p o ()
-putProperty n p = do
-  pm <- get
-  put $ M.insert n p pm
-
-
 traverseInfer :: (Show o, Operator o)
-              => (NodeMap o
-              -> o
-              -> AlgNode
-              -> NodeMap p -> p)
+              => (NodeMap o -> o -> AlgNode -> NodeMap p -> p)
               -> AlgNode
               -> Inference p o ()
 traverseInfer inferWorker n = do
@@ -36,7 +29,7 @@ traverseInfer inferWorker n = do
       let op = operator n dag
       mapM_ (traverseInfer inferWorker) (opChildren op)
       pm <- get
-      putProperty n (inferWorker (nodeMap dag) op n pm)
+      put $ M.insert n (inferWorker (nodeMap dag) op n pm) pm
 
 -- | Infer bottom up properties with the given inference function.
 inferBottomUpGeneral :: Operator o
