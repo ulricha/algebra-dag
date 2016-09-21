@@ -1,40 +1,22 @@
 {-# LANGUAGE BangPatterns #-}
 
-module Database.Algebra.Rewrite.Properties(inferBottomUpGeneral) where
+module Database.Algebra.Rewrite.Properties
+    ( inferBottomUpG
+    ) where
 
 import           Control.Monad.Reader
-import           Control.Monad.State
+import           Control.Monad.State.Strict
 import qualified Data.IntMap                 as M
+import           Data.List
 import           Database.Algebra.Dag
 import           Database.Algebra.Dag.Common
 
--- | Inference of bottom up properties p over a DAG of operator type o.
-type Inference p o a = StateT (NodeMap p) (Reader (AlgebraDag o)) a
-
-hasBeenVisited :: AlgNode -> Inference p o Bool
-hasBeenVisited n = do
-  pm <- get
-  return $ M.member n pm
-
-traverseInfer :: (Show o, Operator o)
-              => (NodeMap o -> o -> AlgNode -> NodeMap p -> p)
-              -> AlgNode
-              -> Inference p o ()
-traverseInfer inferWorker n = do
-  visited <- hasBeenVisited n
-  if visited
-    then return ()
-    else do
-      dag <- lift ask
-      let op = operator n dag
-      mapM_ (traverseInfer inferWorker) (opChildren op)
-      pm <- get
-      put $ M.insert n (inferWorker (nodeMap dag) op n pm) pm
-
--- | Infer bottom up properties with the given inference function.
-inferBottomUpGeneral :: Operator o
-                        => (NodeMap o -> o -> AlgNode -> NodeMap p -> p)  -- ^ Function that infers properties for a single node
-                        -> AlgebraDag o                   -- ^ The DAG
-                        -> NodeMap p                      -- ^ The final mapping from nodes to properties
-inferBottomUpGeneral inferWorker dag = runReader (execStateT infer M.empty) dag
-  where infer = mapM_ (traverseInfer inferWorker) (rootNodes dag)
+inferBottomUpG :: Operator o
+               => (NodeMap o -> o -> AlgNode -> NodeMap p -> p)
+               -> [AlgNode]
+               -> AlgebraDag o
+               -> NodeMap p
+inferBottomUpG inferWorker topOrderedNodes dag =
+    foldl' go M.empty $ reverse topOrderedNodes
+  where
+    go pm node = M.insert node (inferWorker (nodeMap dag) (operator node dag) node pm) pm
