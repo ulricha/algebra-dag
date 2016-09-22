@@ -14,6 +14,7 @@ module Database.Algebra.Dag
          -- FIXME is topological sorting still necessary?
        , topsort
        , hasPath
+       , reachable
        , reachableNodesFrom
        , operator
          -- * DAG modification functions
