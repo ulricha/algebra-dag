@@ -4,8 +4,6 @@ module Database.Algebra.Rewrite.Properties
     ( inferBottomUpG
     ) where
 
-import           Control.Monad.Reader
-import           Control.Monad.State.Strict
 import qualified Data.IntMap                 as M
 import           Data.List
 import           Database.Algebra.Dag

@@ -98,10 +98,7 @@ preOrder inferAction rules =
      the structur of the DAG is not changed during the rewrites. Properties are only inferred
      once.
 -}
-topologically :: Dag.Operator o
-                 => Rewrite o e (NodeMap p)
-                 -> RuleSet o p e
-                 -> Rewrite o e Bool
+topologically :: Rewrite o e (NodeMap p) -> RuleSet o p e -> Rewrite o e Bool
 topologically inferAction rules = do
   topoOrdering <- topsort
   props <- inferAction

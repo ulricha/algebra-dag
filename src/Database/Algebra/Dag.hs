@@ -3,6 +3,7 @@ module Database.Algebra.Dag
          -- * The DAG data structure
          AlgebraDag
        , Operator(..)
+       , dmap
        , nodeMap
        , rootNodes
        , refCountMap
@@ -45,6 +46,12 @@ data AlgebraDag a = AlgebraDag
   , rootNodes   :: [AlgNode]       -- ^ Return the (possibly modified) list of root nodes from a DAG
   , refCountMap :: NodeMap Int     -- ^ A map storing the number of parents for each node.
   }
+
+-- | Map a function over the DAG algebra operators.
+dmap :: Ord b => (a -> b) -> AlgebraDag a -> AlgebraDag b
+dmap f d = d { nodeMap = fmap f (nodeMap d)
+             , opMap   = M.mapKeys f (opMap d)
+             }
 
 instance ToJSON a => ToJSON (AlgebraDag a) where
     toJSON dag = toJSON (nodeMap dag, rootNodes dag)
