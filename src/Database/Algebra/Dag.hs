@@ -63,13 +63,13 @@ instance (FromJSON a, Operator a) => FromJSON (AlgebraDag a) where
 
 -- For every node, count the number of parents (or list of edges to the node).
 -- We don't consider the graph a multi-graph, so an edge (u, v) is only counted
--- once.  We insert one virtual edge for every root node, to make sure that root
--- nodes are not pruned if they don't have any incoming edges.
+-- once.
 initRefCount :: Operator o => [AlgNode] -> NodeMap o -> NodeMap Int
-initRefCount rs nm = L.foldl' incParents (IM.foldr' insertEdge IM.empty nm) (L.nub rs)
+initRefCount rs nm = addRoots $ IM.foldr' insertEdge IM.empty nm
   where
     insertEdge op rm = L.foldl' incParents rm (L.nub $ opChildren op)
     incParents rm n  = IM.insert n ((IM.findWithDefault 0 n rm) + 1) rm
+    addRoots rm      = L.foldl' (\rm' r -> IM.insertWith (\_ o -> o) r 0 rm') rm rs
 
 initOpMap :: Ord o => NodeMap o -> M.Map o AlgNode
 initOpMap nm = IM.foldrWithKey (\n o om -> M.insert o n om) M.empty nm
@@ -115,7 +115,7 @@ addRootNodes d rs = assert (all (\n -> IM.member n $ nodeMap d) rs) $
       , nodeMap     = mNormalized
       , refCountMap = initRefCount rs mNormalized
       , opMap       = initOpMap mNormalized
-      , graph       =  uncurry G.mkUGraph $ IM.foldrWithKey aux ([], []) mNormalized
+      , graph       = uncurry G.mkUGraph $ IM.foldrWithKey aux ([], []) mNormalized
       }
 
   where
@@ -178,14 +178,13 @@ collect collectNodes d = S.foldl' tryCollectNode d collectNodes
   where tryCollectNode :: Operator o => AlgebraDag o -> AlgNode -> AlgebraDag o
         tryCollectNode di n =
           case refCountSafe n di of
-            Just rc -> if rc == 0
-                       then -- node is unreferenced -> collect it
-                            let cs = L.nub $ opChildren $ operator n di
-                                d' = delete' n di
-                            in L.foldl' cutEdge d' cs
+            -- node is unreferenced -> collect it
+            Just rc | rc == 0 && n `notElem` (rootNodes di)  -> let cs = L.nub $ opChildren $ operator n di
+                                                                    d' = delete' n di
+                                                                in L.foldl' cutEdge d' cs
 
-                       else di -- node is still referenced
-            Nothing -> di
+                    | otherwise -> di
+            Nothing             -> error $ "Dag.collect: no reference counting entry for node " ++ show n
 
 -- Cut an edge to a node reference counting wise.
 -- If the ref count becomes zero, the node is deleted and the children are
@@ -195,7 +194,7 @@ cutEdge :: Operator a => AlgebraDag a -> AlgNode -> AlgebraDag a
 cutEdge d edgeTarget =
   let d'          = decrRefCount d edgeTarget
       newRefCount = lookupRefCount edgeTarget d'
-  in if newRefCount == 0
+  in if newRefCount == 0 && edgeTarget `notElem` rootNodes d
      then let cs  = L.nub $ opChildren $ operator edgeTarget d'
               d'' = delete' edgeTarget d'
           in L.foldl' cutEdge d'' cs
@@ -206,18 +205,13 @@ addRefTo d n =
   let refCount = lookupRefCount n d
   in d { refCountMap = IM.insert n (refCount + 1) (refCountMap d) }
 
--- | Replace an entry in the list of root nodes with a new node. The root node must be
--- present in the DAG.
-replaceRoot :: Operator a => AlgebraDag a -> AlgNode -> AlgNode -> AlgebraDag a
+-- | Replace an entry in the list of root nodes with a new node. The root node
+-- must be present in the DAG.
+replaceRoot :: AlgebraDag a -> AlgNode -> AlgNode -> AlgebraDag a
 replaceRoot d old new =
-  if old `elem` (rootNodes d)
-  then let rs'         = map doReplace $ rootNodes d
-           doReplace r = if r == old then new else r
-           d'          = d { rootNodes = rs' }
-       in -- cut the virtual edge to the old root
-          -- and insert a virtual edge to the new root
-          assert (old /= new) $ addRefTo (decrRefCount d' old) new
-  else d
+  let rs'         = map doReplace $ rootNodes d
+      doReplace r = if r == old then new else r
+  in d { rootNodes = rs' }
 
 -- | Insert a new node into the DAG.
 insert :: Operator a => a -> AlgebraDag a -> (AlgNode, AlgebraDag a)
