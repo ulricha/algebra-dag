@@ -26,12 +26,12 @@ inferBottomUpG inferWorker topOrderedNodes dag =
 -- might fail.
 inferBottomUpE :: (Operator o, MonadError e m)
                => (NodeMap o -> o -> AlgNode -> NodeMap p -> m p)
-               -> [AlgNode]
                -> AlgebraDag o
                -> m (NodeMap p)
-inferBottomUpE inferWorker topOrderedNodes dag =
+inferBottomUpE inferWorker dag =
     F.foldrM go M.empty topOrderedNodes
   where
+    topOrderedNodes = topsort dag
     go n pm = do
         p <- inferWorker (nodeMap dag) (operator n dag) n pm
         pure $ M.insert n p pm
