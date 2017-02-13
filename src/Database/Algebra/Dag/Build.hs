@@ -1,9 +1,13 @@
-{-# LANGUAGE GADTs #-}
+{-# LANGUAGE GADTs            #-}
+{-# LANGUAGE FlexibleContexts #-}
 
 module Database.Algebra.Dag.Build
     ( Build
+    , BuildT
+    , BuildState
     , runBuild
-    , tagM
+    , runBuildT
+    , tag
     , insert
     , insertNoShare
     ) where
@@ -25,34 +29,38 @@ data BuildState alg = BuildState
 -- consing.
 type Build alg = State (BuildState alg)
 
--- | Evaluate the monadic graph into an algebraic plan, given a loop
--- relation.
+type BuildT alg m = StateT (BuildState alg) m
+
+-- | Evaluate a monadic DAG construction.
 runBuild :: Build alg r -> (Dag.AlgebraDag alg, r, NodeMap [Tag])
 runBuild m = (dag s, r, tags s)
-  where 
+  where
     initialBuildState = BuildState { dag = Dag.emptyDag, tags = IM.empty }
     (r, s)            = runState m initialBuildState
 
+-- | Evaluate a monadic DAG construction (transformer).
+runBuildT :: Monad m => StateT (BuildState alg) m a -> m (Dag.AlgebraDag alg, a, NodeMap [Tag])
+runBuildT ma = do
+    let initialBuildState = BuildState { dag = Dag.emptyDag, tags = IM.empty }
+    (a, s) <- runStateT ma initialBuildState
+    pure (dag s, a, tags s)
+
 -- | Tag a subtree with a comment
-tag :: String -> AlgNode -> Build alg AlgNode
+tag :: MonadState (BuildState alg) m => String -> AlgNode -> m AlgNode
 tag msg c = do
     modify $ \s -> s { tags = IM.insertWith (++) c [msg] $ tags s }
     return c
 
--- | Tag a subtree with a comment (monadic version)
-tagM :: String -> Build alg AlgNode -> Build alg AlgNode
-tagM s = (=<<) (tag s)
-
 -- | Insert a node into the graph construction environment, first check if the node already exists
 -- | if so return its id, otherwise insert it and return its id.
-insert :: Dag.Operator alg => alg -> Build alg AlgNode
+insert :: (Dag.Operator alg, MonadState (BuildState alg) m) => alg -> m AlgNode
 insert op = do
     d <- gets dag
     let (n, d') = Dag.insert op d
     modify $ \s -> s { dag = d' }
     return n
 
-insertNoShare :: Dag.Operator alg => alg -> Build alg AlgNode
+insertNoShare :: (Dag.Operator alg, MonadState (BuildState alg) m) => alg -> m AlgNode
 insertNoShare op = do
     d <- gets dag
     let (n, d') = Dag.insertNoShare op d
